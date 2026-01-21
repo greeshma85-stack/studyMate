@@ -14,7 +14,99 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          academic_level: string | null
+          avatar_url: string | null
+          created_at: string
+          daily_study_goal_minutes: number | null
+          display_name: string | null
+          id: string
+          notifications_enabled: boolean | null
+          onboarding_completed: boolean | null
+          study_time_preference: string | null
+          subjects: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          academic_level?: string | null
+          avatar_url?: string | null
+          created_at?: string
+          daily_study_goal_minutes?: number | null
+          display_name?: string | null
+          id?: string
+          notifications_enabled?: boolean | null
+          onboarding_completed?: boolean | null
+          study_time_preference?: string | null
+          subjects?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          academic_level?: string | null
+          avatar_url?: string | null
+          created_at?: string
+          daily_study_goal_minutes?: number | null
+          display_name?: string | null
+          id?: string
+          notifications_enabled?: boolean | null
+          onboarding_completed?: boolean | null
+          study_time_preference?: string | null
+          subjects?: string[] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tasks: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          is_recurring: boolean | null
+          priority: string
+          recurring_pattern: string | null
+          status: string
+          subject: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          is_recurring?: boolean | null
+          priority?: string
+          recurring_pattern?: string | null
+          status?: string
+          subject?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          is_recurring?: boolean | null
+          priority?: string
+          recurring_pattern?: string | null
+          status?: string
+          subject?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
