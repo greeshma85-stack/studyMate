@@ -1,5 +1,8 @@
+import { useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { APP_NAME, APP_TAGLINE, ROUTES } from '@/lib/constants';
+import { APP_NAME, APP_TAGLINE } from '@/lib/constants';
 import { BookOpen, CheckSquare, Calendar, MessageSquare, FileText } from 'lucide-react';
 
 const features = [
@@ -26,6 +29,15 @@ const features = [
 ];
 
 const Index = () => {
+  const { isAuthenticated, isLoading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, isLoading, navigate]);
+
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
@@ -47,9 +59,11 @@ const Index = () => {
               intelligent planning, instant doubt resolution, and smart note summarization.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" className="gradient-primary text-primary-foreground">
-                Get Started Free
-              </Button>
+              <Link to="/auth">
+                <Button size="lg" className="gradient-primary text-primary-foreground w-full">
+                  Get Started Free
+                </Button>
+              </Link>
               <Button size="lg" variant="outline">
                 Learn More
               </Button>
