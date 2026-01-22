@@ -60,20 +60,22 @@ const Index = () => {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="/auth">
-                <Button size="lg" className="gradient-primary text-primary-foreground w-full">
+                <Button size="lg" className="gradient-primary text-primary-foreground w-full sm:w-auto">
                   Get Started Free
                 </Button>
               </Link>
-              <Button size="lg" variant="outline">
-                Learn More
-              </Button>
+              <a href="#features">
+                <Button size="lg" variant="outline" className="w-full sm:w-auto">
+                  Learn More
+                </Button>
+              </a>
             </div>
           </div>
         </div>
       </header>
 
       {/* Features Section */}
-      <section className="py-16 md:py-24">
+      <section id="features" className="py-16 md:py-24">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-bold text-center font-heading mb-12">
             Everything You Need to Excel
@@ -108,9 +110,11 @@ const Index = () => {
           <p className="text-lg text-muted-foreground mb-8 max-w-xl mx-auto">
             Join thousands of students who are already studying smarter with {APP_NAME}.
           </p>
-          <Button size="lg" className="gradient-primary text-primary-foreground">
-            Start Your Free Trial
-          </Button>
+          <Link to="/auth">
+            <Button size="lg" className="gradient-primary text-primary-foreground">
+              Start Your Free Trial
+            </Button>
+          </Link>
         </div>
       </section>
 
