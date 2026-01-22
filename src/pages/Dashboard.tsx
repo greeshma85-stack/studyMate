@@ -1,5 +1,4 @@
-import { useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import {
   CheckSquare,
@@ -7,29 +6,21 @@ import {
   MessageSquare,
   FileText,
   Plus,
-  LogOut,
-  User,
   TrendingUp,
   Clock,
   Target,
+  Sparkles,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTasks } from '@/hooks/useTasks';
+import { MainLayout } from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { APP_NAME } from '@/lib/constants';
 
 export default function Dashboard() {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const { data: tasks = [] } = useTasks();
-  const navigate = useNavigate();
 
   const todaysTasks = tasks.filter((task) => {
     if (!task.due_date) return false;
@@ -49,43 +40,15 @@ export default function Dashboard() {
     : 0;
 
   const quickActions = [
-    { icon: Plus, label: 'Add Task', href: '/tasks', color: 'text-primary' },
-    { icon: Calendar, label: 'Study Planner', href: '/planner', color: 'text-info' },
-    { icon: MessageSquare, label: 'AI Chat', href: '/chat', color: 'text-accent' },
-    { icon: FileText, label: 'Notes', href: '/notes', color: 'text-warning' },
+    { icon: Plus, label: 'Add Task', href: '/tasks', color: 'text-primary', bg: 'bg-primary/10' },
+    { icon: Calendar, label: 'Study Planner', href: '/planner', color: 'text-info', bg: 'bg-info/10' },
+    { icon: MessageSquare, label: 'AI Chat', href: '/chat', color: 'text-success', bg: 'bg-success/10' },
+    { icon: FileText, label: 'Summarize Notes', href: '/notes', color: 'text-warning', bg: 'bg-warning/10' },
   ];
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl font-bold font-heading text-primary">{APP_NAME}</h1>
-            </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full">
-                  <User className="h-5 w-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => navigate('/profile')}>
-                  <User className="mr-2 h-4 w-4" />
-                  Profile
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => signOut()}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Sign Out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-      </header>
-
-      <main className="container mx-auto px-4 py-6 space-y-6">
+    <MainLayout>
+      <div className="container mx-auto px-4 py-6 space-y-6">
         {/* Welcome Section */}
         <section>
           <h2 className="text-2xl font-bold font-heading mb-1">
@@ -148,7 +111,7 @@ export default function Dashboard() {
                   <p className="text-2xl font-bold">{completionRate}%</p>
                 </div>
                 <div className="h-10 w-10 rounded-full bg-accent/10 flex items-center justify-center">
-                  <TrendingUp className="h-5 w-5 text-accent" />
+                  <TrendingUp className="h-5 w-5 text-accent-foreground" />
                 </div>
               </div>
             </CardContent>
@@ -161,9 +124,9 @@ export default function Dashboard() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {quickActions.map((action) => (
               <Link key={action.href} to={action.href}>
-                <Card className="hover:shadow-soft transition-shadow cursor-pointer">
+                <Card className="hover:shadow-soft transition-shadow cursor-pointer h-full">
                   <CardContent className="pt-6 text-center">
-                    <div className={`inline-flex items-center justify-center w-12 h-12 rounded-full bg-muted mb-2`}>
+                    <div className={`inline-flex items-center justify-center w-12 h-12 rounded-full ${action.bg} mb-2`}>
                       <action.icon className={`h-6 w-6 ${action.color}`} />
                     </div>
                     <p className="font-medium text-sm">{action.label}</p>
@@ -173,6 +136,28 @@ export default function Dashboard() {
             ))}
           </div>
         </section>
+
+        {/* AI Features Promo */}
+        <Card className="gradient-primary text-primary-foreground overflow-hidden">
+          <CardContent className="py-6">
+            <div className="flex items-center gap-4">
+              <div className="flex-shrink-0">
+                <Sparkles className="h-10 w-10" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-lg">AI-Powered Study Tools</h3>
+                <p className="text-sm opacity-90 mt-1">
+                  Chat with AI for instant help or summarize your notes in seconds
+                </p>
+              </div>
+              <Link to="/chat">
+                <Button variant="secondary" size="sm">
+                  Try Now
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Today's Tasks Preview */}
         <section>
@@ -188,9 +173,11 @@ export default function Dashboard() {
               <CardContent className="py-8 text-center">
                 <CheckSquare className="h-10 w-10 text-muted-foreground mx-auto mb-2" />
                 <p className="text-muted-foreground">No tasks due today</p>
-                <Button variant="link" onClick={() => navigate('/tasks')} className="mt-2">
-                  Add a task
-                </Button>
+                <Link to="/tasks">
+                  <Button variant="link" className="mt-2">
+                    Add a task
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
           ) : (
@@ -246,33 +233,7 @@ export default function Dashboard() {
             </div>
           </CardContent>
         </Card>
-      </main>
-
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-background border-t border-border md:hidden">
-        <div className="flex justify-around py-2">
-          <Link to="/dashboard" className="flex flex-col items-center p-2 text-primary">
-            <CheckSquare className="h-5 w-5" />
-            <span className="text-xs mt-1">Home</span>
-          </Link>
-          <Link to="/tasks" className="flex flex-col items-center p-2 text-muted-foreground hover:text-primary">
-            <Target className="h-5 w-5" />
-            <span className="text-xs mt-1">Tasks</span>
-          </Link>
-          <Link to="/planner" className="flex flex-col items-center p-2 text-muted-foreground hover:text-primary">
-            <Calendar className="h-5 w-5" />
-            <span className="text-xs mt-1">Planner</span>
-          </Link>
-          <Link to="/chat" className="flex flex-col items-center p-2 text-muted-foreground hover:text-primary">
-            <MessageSquare className="h-5 w-5" />
-            <span className="text-xs mt-1">Chat</span>
-          </Link>
-          <Link to="/notes" className="flex flex-col items-center p-2 text-muted-foreground hover:text-primary">
-            <FileText className="h-5 w-5" />
-            <span className="text-xs mt-1">Notes</span>
-          </Link>
-        </div>
-      </nav>
-    </div>
+      </div>
+    </MainLayout>
   );
 }

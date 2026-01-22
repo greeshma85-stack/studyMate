@@ -10,6 +10,8 @@ import Auth from "./pages/Auth";
 import ForgotPassword from "./pages/ForgotPassword";
 import Dashboard from "./pages/Dashboard";
 import Tasks from "./pages/Tasks";
+import Chat from "./pages/Chat";
+import Notes from "./pages/Notes";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -44,11 +46,25 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/chat"
+              element={
+                <ProtectedRoute>
+                  <Chat />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/notes"
+              element={
+                <ProtectedRoute>
+                  <Notes />
+                </ProtectedRoute>
+              }
+            />
             
             {/* Placeholder routes for future phases */}
             <Route path="/planner" element={<ProtectedRoute><ComingSoon title="Study Planner" /></ProtectedRoute>} />
-            <Route path="/chat" element={<ProtectedRoute><ComingSoon title="AI Chat" /></ProtectedRoute>} />
-            <Route path="/notes" element={<ProtectedRoute><ComingSoon title="AI Notes" /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><ComingSoon title="Profile" /></ProtectedRoute>} />
             
             {/* Onboarding */}
@@ -69,7 +85,7 @@ function ComingSoon({ title }: { title: string }) {
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="text-center">
         <h1 className="text-2xl font-bold mb-2">{title}</h1>
-        <p className="text-muted-foreground">Coming in Phase 2</p>
+        <p className="text-muted-foreground">Coming in Phase 3</p>
       </div>
     </div>
   );

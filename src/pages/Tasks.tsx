@@ -3,6 +3,7 @@ import { Plus, Filter, Search, CheckSquare, ListTodo, Loader2 } from 'lucide-rea
 import { useTasks, Task } from '@/hooks/useTasks';
 import { TaskItem } from '@/components/tasks/TaskItem';
 import { TaskFormDialog } from '@/components/tasks/TaskFormDialog';
+import { MainLayout } from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -87,26 +88,21 @@ export default function TasksPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold font-heading">Tasks</h1>
-              <p className="text-sm text-muted-foreground">
-                {pendingCount} pending, {completedCount} completed
-              </p>
-            </div>
-            <Button onClick={() => setDialogOpen(true)} className="gradient-primary">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Task
-            </Button>
+    <MainLayout>
+      <div className="container mx-auto px-4 py-6">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold font-heading">Tasks</h1>
+            <p className="text-sm text-muted-foreground">
+              {pendingCount} pending, {completedCount} completed
+            </p>
           </div>
+          <Button onClick={() => setDialogOpen(true)} className="gradient-primary">
+            <Plus className="mr-2 h-4 w-4" />
+            Add Task
+          </Button>
         </div>
-      </header>
-
-      <main className="container mx-auto px-4 py-6">
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
           <div className="relative flex-1">
@@ -199,13 +195,13 @@ export default function TasksPage() {
             ))}
           </div>
         )}
-      </main>
+      </div>
 
       <TaskFormDialog
         open={dialogOpen}
         onOpenChange={handleDialogClose}
         task={editingTask}
       />
-    </div>
+    </MainLayout>
   );
 }
