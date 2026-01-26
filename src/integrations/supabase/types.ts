@@ -106,6 +106,42 @@ export type Database = {
           },
         ]
       }
+      exam_deadlines: {
+        Row: {
+          created_at: string
+          exam_date: string
+          id: string
+          notes: string | null
+          priority: string
+          subject: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          exam_date: string
+          id?: string
+          notes?: string | null
+          priority?: string
+          subject: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          exam_date?: string
+          id?: string
+          notes?: string | null
+          priority?: string
+          subject?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       note_summaries: {
         Row: {
           created_at: string
@@ -179,6 +215,54 @@ export type Database = {
           onboarding_completed?: boolean | null
           study_time_preference?: string | null
           subjects?: string[] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      study_sessions: {
+        Row: {
+          break_interval_minutes: number
+          created_at: string
+          end_time: string
+          id: string
+          is_ai_generated: boolean
+          is_completed: boolean
+          notes: string | null
+          start_time: string
+          study_method: string
+          subject: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          break_interval_minutes?: number
+          created_at?: string
+          end_time: string
+          id?: string
+          is_ai_generated?: boolean
+          is_completed?: boolean
+          notes?: string | null
+          start_time: string
+          study_method?: string
+          subject: string
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          break_interval_minutes?: number
+          created_at?: string
+          end_time?: string
+          id?: string
+          is_ai_generated?: boolean
+          is_completed?: boolean
+          notes?: string | null
+          start_time?: string
+          study_method?: string
+          subject?: string
+          title?: string
           updated_at?: string
           user_id?: string
         }
