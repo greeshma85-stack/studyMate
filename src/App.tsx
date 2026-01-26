@@ -12,6 +12,7 @@ import Dashboard from "./pages/Dashboard";
 import Tasks from "./pages/Tasks";
 import Chat from "./pages/Chat";
 import Notes from "./pages/Notes";
+import Planner from "./pages/Planner";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -63,8 +64,10 @@ const App = () => (
               }
             />
             
+            {/* Planner */}
+            <Route path="/planner" element={<ProtectedRoute><Planner /></ProtectedRoute>} />
+            
             {/* Placeholder routes for future phases */}
-            <Route path="/planner" element={<ProtectedRoute><ComingSoon title="Study Planner" /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><ComingSoon title="Profile" /></ProtectedRoute>} />
             
             {/* Onboarding */}
