@@ -10,17 +10,21 @@ import {
   Clock,
   Target,
   Sparkles,
+  Crown,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTasks } from '@/hooks/useTasks';
+import { useSubscription, PLAN_DETAILS } from '@/hooks/useSubscription';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
 
 export default function Dashboard() {
   const { user } = useAuth();
   const { data: tasks = [] } = useTasks();
+  const { plan, isSubscribed } = useSubscription();
 
   const todaysTasks = tasks.filter((task) => {
     if (!task.due_date) return false;
@@ -137,27 +141,55 @@ export default function Dashboard() {
           </div>
         </section>
 
-        {/* AI Features Promo */}
-        <Card className="gradient-primary text-primary-foreground overflow-hidden">
-          <CardContent className="py-6">
-            <div className="flex items-center gap-4">
-              <div className="flex-shrink-0">
-                <Sparkles className="h-10 w-10" />
+        {/* Subscription / AI Features Card */}
+        {isSubscribed ? (
+          <Card className="gradient-primary text-primary-foreground overflow-hidden">
+            <CardContent className="py-6">
+              <div className="flex items-center gap-4">
+                <div className="flex-shrink-0">
+                  <Crown className="h-10 w-10" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-semibold text-lg">Premium Active</h3>
+                    <Badge variant="secondary" className="text-xs">
+                      {PLAN_DETAILS[plan].name}
+                    </Badge>
+                  </div>
+                  <p className="text-sm opacity-90">
+                    Enjoy unlimited AI chat, notes, and advanced features
+                  </p>
+                </div>
+                <Link to="/subscription">
+                  <Button variant="secondary" size="sm">
+                    Manage
+                  </Button>
+                </Link>
               </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-lg">AI-Powered Study Tools</h3>
-                <p className="text-sm opacity-90 mt-1">
-                  Chat with AI for instant help or summarize your notes in seconds
-                </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="border-primary/50 bg-gradient-to-r from-primary/5 to-accent/5 overflow-hidden">
+            <CardContent className="py-6">
+              <div className="flex items-center gap-4">
+                <div className="flex-shrink-0">
+                  <Sparkles className="h-10 w-10 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-lg">Upgrade to Premium</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Unlock unlimited AI chat, notes summaries, and advanced planning
+                  </p>
+                </div>
+                <Link to="/subscription">
+                  <Button size="sm">
+                    Upgrade Now
+                  </Button>
+                </Link>
               </div>
-              <Link to="/chat">
-                <Button variant="secondary" size="sm">
-                  Try Now
-                </Button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Today's Tasks Preview */}
         <section>
