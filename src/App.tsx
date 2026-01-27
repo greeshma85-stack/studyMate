@@ -13,6 +13,7 @@ import Tasks from "./pages/Tasks";
 import Chat from "./pages/Chat";
 import Notes from "./pages/Notes";
 import Planner from "./pages/Planner";
+import Subscription from "./pages/Subscription";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -66,6 +67,9 @@ const App = () => (
             
             {/* Planner */}
             <Route path="/planner" element={<ProtectedRoute><Planner /></ProtectedRoute>} />
+            
+            {/* Subscription */}
+            <Route path="/subscription" element={<ProtectedRoute><Subscription /></ProtectedRoute>} />
             
             {/* Placeholder routes for future phases */}
             <Route path="/profile" element={<ProtectedRoute><ComingSoon title="Profile" /></ProtectedRoute>} />
