@@ -54,7 +54,7 @@ export default function Dashboard() {
     <MainLayout>
       <div className="container mx-auto px-4 py-6 space-y-6">
         {/* Welcome Section */}
-        <section>
+        <section className="animate-fade-in">
           <h2 className="text-2xl font-bold font-heading mb-1">
             Welcome back{user?.user_metadata?.display_name ? `, ${user.user_metadata.display_name}` : ''}! 👋
           </h2>
@@ -65,7 +65,7 @@ export default function Dashboard() {
 
         {/* Stats Cards */}
         <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card>
+          <Card className="animate-slide-up" style={{ animationDelay: '0ms' }}>
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -79,7 +79,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="animate-slide-up" style={{ animationDelay: '50ms' }}>
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -93,7 +93,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="animate-slide-up" style={{ animationDelay: '100ms' }}>
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -107,7 +107,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="animate-slide-up" style={{ animationDelay: '150ms' }}>
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -123,12 +123,12 @@ export default function Dashboard() {
         </section>
 
         {/* Quick Actions */}
-        <section>
+        <section className="animate-slide-up" style={{ animationDelay: '200ms' }}>
           <h3 className="font-semibold mb-3">Quick Actions</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {quickActions.map((action) => (
+            {quickActions.map((action, index) => (
               <Link key={action.href} to={action.href}>
-                <Card className="hover:shadow-soft transition-shadow cursor-pointer h-full">
+                <Card className="hover:shadow-soft hover:scale-[1.02] transition-all duration-200 cursor-pointer h-full">
                   <CardContent className="pt-6 text-center">
                     <div className={`inline-flex items-center justify-center w-12 h-12 rounded-full ${action.bg} mb-2`}>
                       <action.icon className={`h-6 w-6 ${action.color}`} />
@@ -142,54 +142,56 @@ export default function Dashboard() {
         </section>
 
         {/* Subscription / AI Features Card */}
-        {isSubscribed ? (
-          <Card className="gradient-primary text-primary-foreground overflow-hidden">
-            <CardContent className="py-6">
-              <div className="flex items-center gap-4">
-                <div className="flex-shrink-0">
-                  <Crown className="h-10 w-10" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-semibold text-lg">Premium Active</h3>
-                    <Badge variant="secondary" className="text-xs">
-                      {PLAN_DETAILS[plan].name}
-                    </Badge>
+        <div className="animate-slide-up" style={{ animationDelay: '250ms' }}>
+          {isSubscribed ? (
+            <Card className="gradient-primary text-primary-foreground overflow-hidden">
+              <CardContent className="py-6">
+                <div className="flex items-center gap-4">
+                  <div className="flex-shrink-0">
+                    <Crown className="h-10 w-10" />
                   </div>
-                  <p className="text-sm opacity-90">
-                    Enjoy unlimited AI chat, notes, and advanced features
-                  </p>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-semibold text-lg">Premium Active</h3>
+                      <Badge variant="secondary" className="text-xs">
+                        {PLAN_DETAILS[plan].name}
+                      </Badge>
+                    </div>
+                    <p className="text-sm opacity-90">
+                      Enjoy unlimited AI chat, notes, and advanced features
+                    </p>
+                  </div>
+                  <Link to="/subscription">
+                    <Button variant="secondary" size="sm">
+                      Manage
+                    </Button>
+                  </Link>
                 </div>
-                <Link to="/subscription">
-                  <Button variant="secondary" size="sm">
-                    Manage
-                  </Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card className="border-primary/50 bg-gradient-to-r from-primary/5 to-accent/5 overflow-hidden">
-            <CardContent className="py-6">
-              <div className="flex items-center gap-4">
-                <div className="flex-shrink-0">
-                  <Sparkles className="h-10 w-10 text-primary" />
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="border-primary/50 bg-gradient-to-r from-primary/5 to-accent/5 overflow-hidden">
+              <CardContent className="py-6">
+                <div className="flex items-center gap-4">
+                  <div className="flex-shrink-0">
+                    <Sparkles className="h-10 w-10 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-lg">Upgrade to Premium</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Unlock unlimited AI chat, notes summaries, and advanced planning
+                    </p>
+                  </div>
+                  <Link to="/subscription">
+                    <Button size="sm">
+                      Upgrade Now
+                    </Button>
+                  </Link>
                 </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-lg">Upgrade to Premium</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Unlock unlimited AI chat, notes summaries, and advanced planning
-                  </p>
-                </div>
-                <Link to="/subscription">
-                  <Button size="sm">
-                    Upgrade Now
-                  </Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+              </CardContent>
+            </Card>
+          )}
+        </div>
 
         {/* Today's Tasks Preview */}
         <section>
