@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { InstallBanner } from "@/components/pwa/InstallBanner";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -14,6 +15,7 @@ import Chat from "./pages/Chat";
 import Notes from "./pages/Notes";
 import Planner from "./pages/Planner";
 import Subscription from "./pages/Subscription";
+import Install from "./pages/Install";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,11 +27,13 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
+          <InstallBanner />
           <Routes>
             {/* Public Routes */}
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/install" element={<Install />} />
             
             {/* Protected Routes */}
             <Route
