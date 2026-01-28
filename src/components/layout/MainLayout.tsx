@@ -11,7 +11,8 @@ import {
   LogOut,
   User,
   BookOpen,
-  Menu
+  BarChart3,
+  CreditCard,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -85,6 +86,18 @@ export function MainLayout({ children }: MainLayoutProps) {
                 <Link to="/profile" className="cursor-pointer">
                   <User className="mr-2 h-4 w-4" />
                   Profile Settings
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/analytics" className="cursor-pointer">
+                  <BarChart3 className="mr-2 h-4 w-4" />
+                  Analytics
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/subscription" className="cursor-pointer">
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  Subscription
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
