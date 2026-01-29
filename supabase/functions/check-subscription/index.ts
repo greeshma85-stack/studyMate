@@ -30,14 +30,8 @@ serve(async (req) => {
     }
     logStep("Stripe key verified");
 
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      { auth: { persistSession: false } }
-    );
-
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
+    if (!authHeader?.startsWith("Bearer ")) {
       return new Response(
         JSON.stringify({ error: "Authentication required" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -45,19 +39,36 @@ serve(async (req) => {
     }
     logStep("Authorization header found");
 
+    // Create client with user's auth header for JWT validation
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
     const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError || !userData.user?.email) {
+    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      console.error("[CHECK-SUBSCRIPTION] JWT validation failed:", claimsError);
       return new Response(
         JSON.stringify({ error: "Invalid authentication" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-    const user = userData.user;
-    logStep("User authenticated", { userId: user.id });
+    
+    const userId = claimsData.claims.sub as string;
+    const userEmail = claimsData.claims.email as string;
+    
+    if (!userEmail) {
+      return new Response(
+        JSON.stringify({ error: "Invalid authentication" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    logStep("User authenticated", { userId });
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
+    const customers = await stripe.customers.list({ email: userEmail, limit: 1 });
 
     if (customers.data.length === 0) {
       logStep("No customer found, returning unsubscribed state");
