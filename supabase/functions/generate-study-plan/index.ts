@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -32,6 +33,61 @@ serve(async (req) => {
   }
 
   try {
+    // Authentication check
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Authentication required" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { auth: { persistSession: false } }
+    );
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+
+    if (authError || !user) {
+      console.error("[STUDY-PLAN] Auth error:", authError?.message);
+      return new Response(
+        JSON.stringify({ error: "Invalid authentication" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log(`[STUDY-PLAN] User authenticated: ${user.id}`);
+
+    // Check subscription status - Study plan generation requires premium
+    const checkSubResponse = await fetch(
+      `${Deno.env.get("SUPABASE_URL")}/functions/v1/check-subscription`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": authHeader,
+          "apikey": Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+        },
+      }
+    );
+
+    let isPremium = false;
+    if (checkSubResponse.ok) {
+      const subData = await checkSubResponse.json();
+      isPremium = subData.subscribed === true;
+    }
+
+    // AI Study Plan is a premium feature
+    if (!isPremium) {
+      return new Response(
+        JSON.stringify({ error: "AI Study Plan generation is a premium feature. Please upgrade to access." }),
+        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Parse request body
     let body: GeneratePlanRequest;
     try {
@@ -272,7 +328,7 @@ Ensure high-priority exams get more study sessions. Space out sessions for the s
       is_ai_generated: true,
     }));
 
-    console.log(`[STUDY-PLAN] Generated ${validatedSessions.length} study sessions`);
+    console.log(`[STUDY-PLAN] Generated ${validatedSessions.length} study sessions for user ${user.id}`);
 
     return new Response(
       JSON.stringify({ sessions: validatedSessions }),
