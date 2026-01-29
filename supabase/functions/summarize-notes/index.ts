@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,6 +15,7 @@ const LENGTH_PROMPTS = {
 const VALID_LENGTHS = ['short', 'medium', 'detailed'];
 const MIN_TEXT_LENGTH = 50;
 const MAX_TEXT_LENGTH = 100000;
+const FREE_DAILY_LIMIT = 5;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -21,6 +23,93 @@ serve(async (req) => {
   }
 
   try {
+    // Authentication check
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Authentication required" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { auth: { persistSession: false } }
+    );
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+
+    if (authError || !user) {
+      console.error("[SUMMARIZE] Auth error:", authError?.message);
+      return new Response(
+        JSON.stringify({ error: "Invalid authentication" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log(`[SUMMARIZE] User authenticated: ${user.id}`);
+
+    // Check subscription status
+    const checkSubResponse = await fetch(
+      `${Deno.env.get("SUPABASE_URL")}/functions/v1/check-subscription`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": authHeader,
+          "apikey": Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+        },
+      }
+    );
+
+    let isPremium = false;
+    if (checkSubResponse.ok) {
+      const subData = await checkSubResponse.json();
+      isPremium = subData.subscribed === true;
+    }
+
+    // Check and enforce usage limits for free users
+    if (!isPremium) {
+      const today = new Date().toISOString().split("T")[0];
+      
+      // Get or create today's usage record
+      const { data: existingUsage, error: usageError } = await supabaseClient
+        .from("ai_usage")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("usage_date", today)
+        .maybeSingle();
+
+      if (usageError) {
+        console.error("[SUMMARIZE] Usage check error:", usageError.message);
+      }
+
+      const currentCount = existingUsage?.notes_generated_count ?? 0;
+
+      if (currentCount >= FREE_DAILY_LIMIT) {
+        return new Response(
+          JSON.stringify({ error: "Daily limit reached. Upgrade to premium for unlimited access." }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Update usage count
+      if (existingUsage) {
+        await supabaseClient
+          .from("ai_usage")
+          .update({ notes_generated_count: currentCount + 1 })
+          .eq("id", existingUsage.id);
+      } else {
+        await supabaseClient
+          .from("ai_usage")
+          .insert({ user_id: user.id, usage_date: today, notes_generated_count: 1 });
+      }
+
+      console.log(`[SUMMARIZE] Free user usage: ${currentCount + 1}/${FREE_DAILY_LIMIT}`);
+    }
+
     // Parse request body
     let body;
     try {
@@ -75,7 +164,7 @@ serve(async (req) => {
 
     const lengthInstruction = LENGTH_PROMPTS[length as keyof typeof LENGTH_PROMPTS] || LENGTH_PROMPTS.medium;
     
-    console.log(`[SUMMARIZE] Request - Length: ${length}, Text length: ${text.length} chars`);
+    console.log(`[SUMMARIZE] Request - Length: ${length}, Text length: ${text.length} chars, Premium: ${isPremium}`);
 
     const systemPrompt = `You are an expert study notes summarizer. Your job is to transform lengthy academic notes into clear, organized summaries that help students review and retain information effectively.
 
