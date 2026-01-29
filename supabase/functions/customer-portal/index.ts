@@ -21,7 +21,13 @@ serve(async (req) => {
     logStep("Function started");
 
     const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
+    if (!stripeKey) {
+      console.error("[CUSTOMER-PORTAL] STRIPE_SECRET_KEY is not set");
+      return new Response(
+        JSON.stringify({ error: "Payment service is not available" }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
     logStep("Stripe key verified");
 
     const supabaseClient = createClient(
@@ -31,41 +37,52 @@ serve(async (req) => {
     );
 
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("No authorization header provided");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Authentication required" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
     logStep("Authorization header found");
 
     const token = authHeader.replace("Bearer ", "");
     const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError) throw new Error(`Authentication error: ${userError.message}`);
+    if (userError || !userData.user?.email) {
+      return new Response(
+        JSON.stringify({ error: "Invalid authentication" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
     const user = userData.user;
-    if (!user?.email) throw new Error("User not authenticated or email not available");
-    logStep("User authenticated", { userId: user.id, email: user.email });
+    logStep("User authenticated");
 
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     if (customers.data.length === 0) {
-      throw new Error("No Stripe customer found for this user");
+      return new Response(
+        JSON.stringify({ error: "No subscription found" }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
     const customerId = customers.data[0].id;
-    logStep("Found Stripe customer", { customerId });
+    logStep("Found Stripe customer");
 
     const origin = req.headers.get("origin") || "http://localhost:3000";
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: customerId,
       return_url: `${origin}/subscription`,
     });
-    logStep("Customer portal session created", { sessionId: portalSession.id, url: portalSession.url });
+    logStep("Customer portal session created");
 
     return new Response(JSON.stringify({ url: portalSession.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR", { message: errorMessage });
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+    console.error("[CUSTOMER-PORTAL] Unexpected error:", error);
+    return new Response(
+      JSON.stringify({ error: "An error occurred processing your request" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
 });

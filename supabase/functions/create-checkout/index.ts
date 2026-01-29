@@ -17,26 +17,65 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const supabaseClient = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_ANON_KEY") ?? ""
-  );
-
   try {
     logStep("Function started");
+
+    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+    if (!stripeKey) {
+      console.error("[CREATE-CHECKOUT] STRIPE_SECRET_KEY is not set");
+      return new Response(
+        JSON.stringify({ error: "Payment service is not available" }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Parse request body
+    let body;
+    try {
+      body = await req.json();
+    } catch {
+      return new Response(
+        JSON.stringify({ error: "Invalid request body" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { priceId } = body;
     
-    const { priceId } = await req.json();
-    if (!priceId) throw new Error("Price ID is required");
-    logStep("Price ID received", { priceId });
+    // Validate priceId
+    if (!priceId || typeof priceId !== 'string' || !priceId.startsWith('price_')) {
+      return new Response(
+        JSON.stringify({ error: "Invalid price ID" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    logStep("Price ID received");
 
-    const authHeader = req.headers.get("Authorization")!;
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+    );
+
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Authentication required" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const token = authHeader.replace("Bearer ", "");
-    const { data } = await supabaseClient.auth.getUser(token);
+    const { data, error: authError } = await supabaseClient.auth.getUser(token);
+    if (authError || !data.user?.email) {
+      return new Response(
+        JSON.stringify({ error: "Invalid authentication" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
     const user = data.user;
-    if (!user?.email) throw new Error("User not authenticated or email not available");
-    logStep("User authenticated", { userId: user.id, email: user.email });
+    logStep("User authenticated");
 
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
+    const stripe = new Stripe(stripeKey, {
       apiVersion: "2025-08-27.basil",
     });
 
@@ -45,7 +84,7 @@ serve(async (req) => {
     let customerId;
     if (customers.data.length > 0) {
       customerId = customers.data[0].id;
-      logStep("Existing Stripe customer found", { customerId });
+      logStep("Existing Stripe customer found");
     } else {
       logStep("No existing Stripe customer, will create new one during checkout");
     }
@@ -68,18 +107,17 @@ serve(async (req) => {
       },
     });
 
-    logStep("Checkout session created", { sessionId: session.id, url: session.url });
+    logStep("Checkout session created");
 
     return new Response(JSON.stringify({ url: session.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR", { message: errorMessage });
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+    console.error("[CREATE-CHECKOUT] Unexpected error:", error);
+    return new Response(
+      JSON.stringify({ error: "An error occurred processing your request" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
 });

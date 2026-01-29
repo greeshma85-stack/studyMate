@@ -11,30 +11,71 @@ const LENGTH_PROMPTS = {
   detailed: "Create a comprehensive summary with 10-15 bullet points. Include main concepts, supporting details, definitions, and examples.",
 };
 
+const VALID_LENGTHS = ['short', 'medium', 'detailed'];
+const MIN_TEXT_LENGTH = 50;
+const MAX_TEXT_LENGTH = 100000;
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { text, length = "medium" } = await req.json();
-    
-    if (!text || text.trim().length < 50) {
+    // Parse request body
+    let body;
+    try {
+      body = await req.json();
+    } catch {
       return new Response(
-        JSON.stringify({ error: "Please provide at least 50 characters of text to summarize." }),
+        JSON.stringify({ error: "Invalid request body" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { text, length = "medium" } = body;
+    
+    // Validate text input
+    if (typeof text !== 'string') {
+      return new Response(
+        JSON.stringify({ error: "Text must be a string" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (text.trim().length < MIN_TEXT_LENGTH) {
+      return new Response(
+        JSON.stringify({ error: `Please provide at least ${MIN_TEXT_LENGTH} characters of text to summarize.` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (text.length > MAX_TEXT_LENGTH) {
+      return new Response(
+        JSON.stringify({ error: `Text is too long. Maximum ${MAX_TEXT_LENGTH} characters allowed.` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate length parameter
+    if (!VALID_LENGTHS.includes(length)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid summary length. Use 'short', 'medium', or 'detailed'." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
-      console.error("LOVABLE_API_KEY is not configured");
-      throw new Error("AI service is not configured");
+      console.error("[SUMMARIZE] LOVABLE_API_KEY is not configured");
+      return new Response(
+        JSON.stringify({ error: "AI service is not available" }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const lengthInstruction = LENGTH_PROMPTS[length as keyof typeof LENGTH_PROMPTS] || LENGTH_PROMPTS.medium;
     
-    console.log(`Summarize request - Length: ${length}, Text length: ${text.length} chars`);
+    console.log(`[SUMMARIZE] Request - Length: ${length}, Text length: ${text.length} chars`);
 
     const systemPrompt = `You are an expert study notes summarizer. Your job is to transform lengthy academic notes into clear, organized summaries that help students review and retain information effectively.
 
@@ -65,7 +106,7 @@ Guidelines:
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
+      console.error("[SUMMARIZE] Gateway error:", response.status, errorText);
       
       if (response.status === 429) {
         return new Response(
@@ -82,23 +123,23 @@ Guidelines:
       
       return new Response(
         JSON.stringify({ error: "AI service temporarily unavailable" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const data = await response.json();
     const summary = data.choices?.[0]?.message?.content || "Unable to generate summary.";
     
-    console.log("Summary generated successfully");
+    console.log("[SUMMARIZE] Summary generated successfully");
     
     return new Response(
       JSON.stringify({ summary }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Summarize error:", error);
+    console.error("[SUMMARIZE] Unexpected error:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error occurred" }),
+      JSON.stringify({ error: "An error occurred processing your request" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
