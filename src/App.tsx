@@ -10,6 +10,7 @@ import { InstallBanner } from "@/components/pwa/InstallBanner";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
 import Tasks from "./pages/Tasks";
 import Chat from "./pages/Chat";
@@ -43,6 +44,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/install" element={<Install />} />
             
             {/* Protected Routes */}
