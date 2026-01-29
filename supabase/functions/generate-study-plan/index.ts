@@ -20,6 +20,11 @@ interface GeneratePlanRequest {
   endDate: string;
 }
 
+const VALID_STUDY_TIMES = ['morning', 'afternoon', 'evening', 'night'];
+const VALID_PRIORITIES = ['low', 'medium', 'high'];
+const MAX_EXAMS = 50;
+const MAX_DAILY_HOURS = 16;
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -27,18 +32,111 @@ serve(async (req) => {
   }
 
   try {
-    const { exams, dailyStudyHours, preferredStudyTime, startDate, endDate }: GeneratePlanRequest = await req.json();
+    // Parse request body
+    let body: GeneratePlanRequest;
+    try {
+      body = await req.json();
+    } catch {
+      return new Response(
+        JSON.stringify({ error: 'Invalid request body' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
-    if (!exams || exams.length === 0) {
+    const { exams, dailyStudyHours, preferredStudyTime, startDate, endDate } = body;
+
+    // Validate exams array
+    if (!Array.isArray(exams) || exams.length === 0) {
       return new Response(
         JSON.stringify({ error: 'At least one exam deadline is required to generate a plan' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    if (exams.length > MAX_EXAMS) {
+      return new Response(
+        JSON.stringify({ error: `Too many exams. Maximum ${MAX_EXAMS} allowed.` }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate each exam
+    for (const exam of exams) {
+      if (!exam || typeof exam !== 'object') {
+        return new Response(
+          JSON.stringify({ error: 'Invalid exam format' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      if (typeof exam.subject !== 'string' || exam.subject.length === 0 || exam.subject.length > 100) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid exam subject' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      if (typeof exam.title !== 'string' || exam.title.length === 0 || exam.title.length > 200) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid exam title' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      if (!exam.exam_date || isNaN(Date.parse(exam.exam_date))) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid exam date' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      if (exam.priority && !VALID_PRIORITIES.includes(exam.priority)) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid exam priority' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+    // Validate dailyStudyHours
+    if (typeof dailyStudyHours !== 'number' || dailyStudyHours < 1 || dailyStudyHours > MAX_DAILY_HOURS) {
+      return new Response(
+        JSON.stringify({ error: `Daily study hours must be between 1 and ${MAX_DAILY_HOURS}` }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate preferredStudyTime
+    if (!VALID_STUDY_TIMES.includes(preferredStudyTime)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid preferred study time' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate dates
+    if (!startDate || isNaN(Date.parse(startDate))) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid start date' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    if (!endDate || isNaN(Date.parse(endDate))) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid end date' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    if (new Date(startDate) > new Date(endDate)) {
+      return new Response(
+        JSON.stringify({ error: 'Start date must be before end date' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY is not configured');
+      console.error('[STUDY-PLAN] LOVABLE_API_KEY is not configured');
+      return new Response(
+        JSON.stringify({ error: 'AI service is not available' }),
+        { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Get study time slots based on preference
@@ -84,7 +182,7 @@ Return a JSON array of study sessions with this exact structure:
 Create realistic sessions within the preferred time slots. Each session should be 45-90 minutes.
 Ensure high-priority exams get more study sessions. Space out sessions for the same subject.`;
 
-    console.log('Calling AI to generate study plan...');
+    console.log('[STUDY-PLAN] Calling AI to generate study plan...');
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -103,6 +201,9 @@ Ensure high-priority exams get more study sessions. Space out sessions for the s
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[STUDY-PLAN] Gateway error:', response.status, errorText);
+      
       if (response.status === 429) {
         return new Response(
           JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
@@ -115,19 +216,25 @@ Ensure high-priority exams get more study sessions. Space out sessions for the s
           { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      const errorText = await response.text();
-      console.error('AI gateway error:', response.status, errorText);
-      throw new Error(`AI gateway error: ${response.status}`);
+      
+      return new Response(
+        JSON.stringify({ error: 'AI service temporarily unavailable' }),
+        { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content;
 
     if (!content) {
-      throw new Error('No response from AI');
+      console.error('[STUDY-PLAN] No content in AI response');
+      return new Response(
+        JSON.stringify({ error: 'Failed to generate study plan' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    console.log('AI response received, parsing...');
+    console.log('[STUDY-PLAN] AI response received, parsing...');
 
     // Parse the JSON response - extract JSON from markdown if needed
     let sessions;
@@ -137,12 +244,19 @@ Ensure high-priority exams get more study sessions. Space out sessions for the s
       const jsonStr = jsonMatch ? jsonMatch[1].trim() : content.trim();
       sessions = JSON.parse(jsonStr);
     } catch (parseError) {
-      console.error('Failed to parse AI response:', content);
-      throw new Error('Failed to parse AI response as JSON');
+      console.error('[STUDY-PLAN] Failed to parse AI response');
+      return new Response(
+        JSON.stringify({ error: 'Failed to generate study plan' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     if (!Array.isArray(sessions)) {
-      throw new Error('AI response is not an array of sessions');
+      console.error('[STUDY-PLAN] AI response is not an array');
+      return new Response(
+        JSON.stringify({ error: 'Failed to generate study plan' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Validate and clean up sessions
@@ -158,7 +272,7 @@ Ensure high-priority exams get more study sessions. Space out sessions for the s
       is_ai_generated: true,
     }));
 
-    console.log(`Generated ${validatedSessions.length} study sessions`);
+    console.log(`[STUDY-PLAN] Generated ${validatedSessions.length} study sessions`);
 
     return new Response(
       JSON.stringify({ sessions: validatedSessions }),
@@ -166,9 +280,9 @@ Ensure high-priority exams get more study sessions. Space out sessions for the s
     );
 
   } catch (error) {
-    console.error('Error generating study plan:', error);
+    console.error('[STUDY-PLAN] Unexpected error:', error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Failed to generate study plan' }),
+      JSON.stringify({ error: 'An error occurred processing your request' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
