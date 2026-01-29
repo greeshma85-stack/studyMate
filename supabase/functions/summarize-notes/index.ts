@@ -1,10 +1,25 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+const ALLOWED_ORIGINS = [
+  'https://studymaate.lovable.app',
+  'https://id-preview--23430868-0da0-4410-9fc1-64f01f2fa1cd.lovable.app',
+  'http://localhost:8080',
+  'http://localhost:3000',
+  'http://localhost:5173',
+];
+
+function getCorsHeaders(origin: string | null) {
+  const allowedOrigin = origin && ALLOWED_ORIGINS.some(allowed => 
+    origin === allowed || origin.endsWith('.lovable.app')
+  ) ? origin : ALLOWED_ORIGINS[0];
+  
+  return {
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Credentials": "true",
+  };
+}
 
 const LENGTH_PROMPTS = {
   short: "Create a very concise summary in 2-3 bullet points. Focus only on the most critical information.",
@@ -18,6 +33,9 @@ const MAX_TEXT_LENGTH = 100000;
 const FREE_DAILY_LIMIT = 5;
 
 serve(async (req) => {
+  const origin = req.headers.get("origin");
+  const corsHeaders = getCorsHeaders(origin);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -227,6 +245,7 @@ Guidelines:
     );
   } catch (error) {
     console.error("[SUMMARIZE] Unexpected error:", error);
+    const corsHeaders = getCorsHeaders(req.headers.get("origin"));
     return new Response(
       JSON.stringify({ error: "An error occurred processing your request" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
