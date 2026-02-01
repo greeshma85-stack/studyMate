@@ -59,16 +59,21 @@ const Index = () => {
               intelligent planning, instant doubt resolution, and smart note summarization.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link to="/auth">
-                <Button size="lg" className="gradient-primary text-primary-foreground w-full sm:w-auto">
-                  Get Started Free
-                </Button>
-              </Link>
-              <a href="#features">
-                <Button size="lg" variant="outline" className="w-full sm:w-auto">
-                  Learn More
-                </Button>
-              </a>
+              <Button 
+                size="lg" 
+                className="gradient-primary text-primary-foreground w-full sm:w-auto"
+                onClick={() => navigate('/auth')}
+              >
+                Get Started Free
+              </Button>
+              <Button 
+                size="lg" 
+                variant="outline" 
+                className="w-full sm:w-auto"
+                onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
+              >
+                Learn More
+              </Button>
             </div>
           </div>
         </div>
@@ -110,11 +115,13 @@ const Index = () => {
           <p className="text-lg text-muted-foreground mb-8 max-w-xl mx-auto">
             Join thousands of students who are already studying smarter with {APP_NAME}.
           </p>
-          <Link to="/auth">
-            <Button size="lg" className="gradient-primary text-primary-foreground">
-              Start Your Free Trial
-            </Button>
-          </Link>
+          <Button 
+            size="lg" 
+            className="gradient-primary text-primary-foreground"
+            onClick={() => navigate('/auth')}
+          >
+            Start Your Free Trial
+          </Button>
         </div>
       </section>
 
