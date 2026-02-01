@@ -18,6 +18,7 @@ import Notes from "./pages/Notes";
 import Planner from "./pages/Planner";
 import Subscription from "./pages/Subscription";
 import Analytics from "./pages/Analytics";
+import Profile from "./pages/Profile";
 import Install from "./pages/Install";
 import NotFound from "./pages/NotFound";
 
@@ -91,7 +92,7 @@ const App = () => (
             <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
             
             {/* Placeholder routes for future phases */}
-            <Route path="/profile" element={<ProtectedRoute><ComingSoon title="Profile" /></ProtectedRoute>} />
+            <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             
             {/* Onboarding */}
             <Route path="/onboarding/welcome" element={<Navigate to="/dashboard" replace />} />
