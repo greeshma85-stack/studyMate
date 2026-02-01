@@ -48,9 +48,11 @@ serve(async (req) => {
     }
     logStep("Stripe key verified");
 
+    // Use ANON_KEY instead of SERVICE_ROLE_KEY since we only need auth.getUser()
+    // This reduces blast radius if key is compromised - no privileged DB access needed
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
       { auth: { persistSession: false } }
     );
 
