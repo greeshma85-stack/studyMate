@@ -5,7 +5,8 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAIChat, Subject, ChatMessage } from '@/hooks/useAIChat';
-import { Send, Trash2, Loader2, Bot, User, Sparkles } from 'lucide-react';
+import { useVoiceInput, useTextToSpeech } from '@/hooks/useVoiceInput';
+import { Send, Trash2, Loader2, Bot, User, Sparkles, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const SUBJECTS: { value: Subject; label: string; icon: string }[] = [
@@ -71,6 +72,8 @@ function EmptyState() {
 
 export default function ChatPage() {
   const { messages, isLoading, subject, setSubject, sendMessage, clearMessages } = useAIChat();
+  const { isListening, transcript, isSupported, startListening, stopListening, resetTranscript } = useVoiceInput();
+  const { speak, stop: stopSpeaking, isSpeaking } = useTextToSpeech();
   const [input, setInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -81,11 +84,38 @@ export default function ChatPage() {
     }
   }, [messages]);
 
+  // Update input when voice transcript changes
+  useEffect(() => {
+    if (transcript) {
+      setInput(prev => prev + (prev ? ' ' : '') + transcript);
+    }
+  }, [transcript]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (input.trim() && !isLoading) {
       sendMessage(input);
       setInput('');
+      resetTranscript();
+    }
+  };
+
+  const toggleVoice = () => {
+    if (isListening) {
+      stopListening();
+    } else {
+      startListening();
+    }
+  };
+
+  const handleSpeakLastResponse = () => {
+    const lastAssistantMessage = [...messages].reverse().find(m => m.role === 'assistant');
+    if (lastAssistantMessage) {
+      if (isSpeaking) {
+        stopSpeaking();
+      } else {
+        speak(lastAssistantMessage.content);
+      }
     }
   };
 
@@ -160,10 +190,32 @@ export default function ChatPage() {
               ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask me anything about your studies..."
+              placeholder={isListening ? "Listening..." : "Ask me anything about your studies..."}
               disabled={isLoading}
-              className="flex-1"
+              className={cn("flex-1", isListening && "border-primary ring-2 ring-primary/20")}
             />
+            {isSupported && (
+              <Button 
+                type="button" 
+                variant={isListening ? "destructive" : "outline"} 
+                size="icon"
+                onClick={toggleVoice}
+                title={isListening ? "Stop listening" : "Start voice input"}
+              >
+                {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              </Button>
+            )}
+            {messages.some(m => m.role === 'assistant') && (
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={handleSpeakLastResponse}
+                title={isSpeaking ? "Stop speaking" : "Read last response"}
+              >
+                {isSpeaking ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+              </Button>
+            )}
             <Button type="submit" disabled={!input.trim() || isLoading} className="gradient-primary">
               {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             </Button>

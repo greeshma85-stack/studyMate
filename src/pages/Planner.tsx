@@ -9,6 +9,7 @@ import {
   Target,
   Trash2,
   AlertTriangle,
+  Download,
 } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
@@ -18,6 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { useStudyPlanner, ExamDeadline } from '@/hooks/useStudyPlanner';
+import { useCalendarExport } from '@/hooks/useCalendarExport';
 import { ExamDeadlineDialog } from '@/components/planner/ExamDeadlineDialog';
 import { StudySessionDialog } from '@/components/planner/StudySessionDialog';
 import { GeneratePlanDialog } from '@/components/planner/GeneratePlanDialog';
@@ -36,6 +38,8 @@ export default function Planner() {
     generatePlan,
     toggleSessionComplete,
   } = useStudyPlanner();
+
+  const { exportMultipleEvents } = useCalendarExport();
 
   const [showExamDialog, setShowExamDialog] = useState(false);
   const [showSessionDialog, setShowSessionDialog] = useState(false);
@@ -62,6 +66,28 @@ export default function Planner() {
 
   const handleGeneratePlan = async (params: any) => {
     await generatePlan(params);
+  };
+
+  const handleExportCalendar = () => {
+    const events = sessions.map(session => ({
+      title: `📚 ${session.title || session.subject}`,
+      description: `Study session for ${session.subject}${session.notes ? '\n\nNotes: ' + session.notes : ''}`,
+      startTime: new Date(session.start_time),
+      endTime: new Date(session.end_time),
+    }));
+
+    // Add exams as events too
+    exams.forEach(exam => {
+      const examDate = new Date(exam.exam_date);
+      events.push({
+        title: `🎯 EXAM: ${exam.title}`,
+        description: `${exam.subject} exam${exam.notes ? '\n\nNotes: ' + exam.notes : ''}`,
+        startTime: examDate,
+        endTime: new Date(examDate.getTime() + 2 * 60 * 60 * 1000), // 2 hour duration
+      });
+    });
+
+    exportMultipleEvents(events);
   };
 
   if (isLoading) {
@@ -92,6 +118,12 @@ export default function Planner() {
             </p>
           </div>
           <div className="flex gap-2 flex-wrap">
+            {(sessions.length > 0 || exams.length > 0) && (
+              <Button variant="outline" onClick={handleExportCalendar}>
+                <Download className="h-4 w-4 mr-2" />
+                Export to Calendar
+              </Button>
+            )}
             <Button variant="outline" onClick={() => setShowExamDialog(true)}>
               <Target className="h-4 w-4 mr-2" />
               Add Exam
