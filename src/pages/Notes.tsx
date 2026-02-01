@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -9,6 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useNoteSummarizer, SummaryLength, NoteSummary } from '@/hooks/useNoteSummarizer';
+import { useFileParser } from '@/hooks/useFileParser';
 import { 
   FileText, 
   Loader2, 
@@ -18,7 +19,10 @@ import {
   Trash2, 
   Download,
   Clock,
-  ChevronRight
+  ChevronRight,
+  Upload,
+  File,
+  X
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -29,6 +33,8 @@ const LENGTH_OPTIONS: { value: SummaryLength; label: string; description: string
   { value: 'medium', label: 'Medium', description: '5-7 main concepts' },
   { value: 'detailed', label: 'Detailed', description: '10-15 comprehensive points' },
 ];
+
+const MAX_TEXT_LENGTH = 100000;
 
 function SummaryCard({ summary, onSelect, onDelete }: { 
   summary: NoteSummary; 
@@ -75,8 +81,11 @@ export default function NotesPage() {
   const [text, setText] = useState('');
   const [title, setTitle] = useState('');
   const [length, setLength] = useState<SummaryLength>('medium');
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [activeTab, setActiveTab] = useState<'create' | 'history'>('create');
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { parseFile, isParsing } = useFileParser();
 
   const {
     isGenerating,
@@ -94,12 +103,86 @@ export default function NotesPage() {
     loadSummaries();
   }, [loadSummaries]);
 
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadedFile(file);
+    const extractedText = await parseFile(file);
+    if (extractedText) {
+      if (extractedText.length > MAX_TEXT_LENGTH) {
+        toast({
+          variant: 'destructive',
+          title: 'File too large',
+          description: `Extracted text is ${extractedText.length.toLocaleString()} characters. Maximum allowed is ${MAX_TEXT_LENGTH.toLocaleString()}. Text has been truncated.`,
+        });
+        setText(extractedText.slice(0, MAX_TEXT_LENGTH));
+      } else {
+        setText(extractedText);
+        toast({
+          title: 'File processed',
+          description: `Extracted ${extractedText.length.toLocaleString()} characters from ${file.name}`,
+        });
+      }
+      if (!title) {
+        setTitle(file.name.replace(/\.[^/.]+$/, ''));
+      }
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+
+    setUploadedFile(file);
+    const extractedText = await parseFile(file);
+    if (extractedText) {
+      if (extractedText.length > MAX_TEXT_LENGTH) {
+        toast({
+          variant: 'destructive',
+          title: 'File too large',
+          description: `Extracted text is ${extractedText.length.toLocaleString()} characters. Maximum allowed is ${MAX_TEXT_LENGTH.toLocaleString()}. Text has been truncated.`,
+        });
+        setText(extractedText.slice(0, MAX_TEXT_LENGTH));
+      } else {
+        setText(extractedText);
+        toast({
+          title: 'File processed',
+          description: `Extracted ${extractedText.length.toLocaleString()} characters from ${file.name}`,
+        });
+      }
+      if (!title) {
+        setTitle(file.name.replace(/\.[^/.]+$/, ''));
+      }
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+  };
+
+  const clearFile = () => {
+    setUploadedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const handleGenerate = async () => {
     if (text.trim().length < 50) {
       toast({
         variant: 'destructive',
         title: 'Text too short',
         description: 'Please enter at least 50 characters to summarize.',
+      });
+      return;
+    }
+    if (text.length > MAX_TEXT_LENGTH) {
+      toast({
+        variant: 'destructive',
+        title: 'Text too long',
+        description: `Maximum ${MAX_TEXT_LENGTH.toLocaleString()} characters allowed. Your text has ${text.length.toLocaleString()} characters.`,
       });
       return;
     }
@@ -132,6 +215,8 @@ export default function NotesPage() {
     setLength(summary.summaryLength);
     setActiveTab('create');
   };
+
+  const isTextTooLong = text.length > MAX_TEXT_LENGTH;
 
   return (
     <MainLayout>
@@ -176,17 +261,73 @@ export default function NotesPage() {
                     />
                   </div>
 
+                  {/* File Upload Area */}
                   <div className="space-y-2">
-                    <Label htmlFor="notes">Paste your notes</Label>
+                    <Label>Upload Document (Optional)</Label>
+                    <div
+                      onDrop={handleDrop}
+                      onDragOver={handleDragOver}
+                      className={cn(
+                        "border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer hover:border-primary/50",
+                        isParsing && "opacity-50 pointer-events-none",
+                        uploadedFile ? "border-primary bg-primary/5" : "border-muted-foreground/25"
+                      )}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".pdf,.docx,.txt"
+                        onChange={handleFileSelect}
+                        className="hidden"
+                      />
+                      {isParsing ? (
+                        <div className="flex flex-col items-center gap-2">
+                          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                          <p className="text-sm text-muted-foreground">Processing file...</p>
+                        </div>
+                      ) : uploadedFile ? (
+                        <div className="flex items-center justify-center gap-2">
+                          <File className="h-5 w-5 text-primary" />
+                          <span className="text-sm font-medium">{uploadedFile.name}</span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={(e) => { e.stopPropagation(); clearFile(); }}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center gap-2">
+                          <Upload className="h-8 w-8 text-muted-foreground" />
+                          <p className="text-sm text-muted-foreground">
+                            Drag & drop or click to upload
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Supports PDF, DOCX, TXT
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="notes">Or paste your notes</Label>
                     <Textarea
                       id="notes"
                       value={text}
                       onChange={(e) => setText(e.target.value)}
                       placeholder="Paste your study notes here... (minimum 50 characters)"
-                      className="min-h-[300px] resize-none"
+                      className="min-h-[200px] resize-none"
                     />
-                    <p className="text-xs text-muted-foreground text-right">
-                      {text.length} characters
+                    <p className={cn(
+                      "text-xs text-right",
+                      isTextTooLong ? "text-destructive font-medium" : "text-muted-foreground"
+                    )}>
+                      {text.length.toLocaleString()} / {MAX_TEXT_LENGTH.toLocaleString()} characters
+                      {isTextTooLong && " (too long!)"}
                     </p>
                   </div>
 
@@ -211,7 +352,7 @@ export default function NotesPage() {
 
                   <Button
                     onClick={handleGenerate}
-                    disabled={isGenerating || text.trim().length < 50}
+                    disabled={isGenerating || isParsing || text.trim().length < 50 || isTextTooLong}
                     className="w-full gradient-primary"
                   >
                     {isGenerating ? (
