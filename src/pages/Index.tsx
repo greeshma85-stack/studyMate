@@ -42,7 +42,7 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
       <header className="relative overflow-hidden">
-        <div className="absolute inset-0 gradient-primary opacity-5" />
+        <div className="absolute inset-0 gradient-primary opacity-5 pointer-events-none" />
         <div className="container mx-auto px-4 py-16 md:py-24">
           <div className="text-center max-w-3xl mx-auto">
             <div className="inline-flex items-center gap-2 mb-6">
