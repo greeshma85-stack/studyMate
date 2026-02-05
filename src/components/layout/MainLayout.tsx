@@ -15,6 +15,7 @@ import {
   CreditCard,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { AdBanner } from '@/components/ads/AdBanner';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -138,6 +139,9 @@ export function MainLayout({ children }: MainLayoutProps) {
 
       {/* Bottom padding for mobile nav */}
       <div className="md:hidden h-16" />
+
+      {/* AdMob Banner - shown to free users only */}
+      <AdBanner position="bottom" />
     </div>
   );
 }
