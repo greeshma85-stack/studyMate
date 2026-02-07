@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'app.lovable.234308680da044109fc164f01f2fa1cd',
+  appId: 'com.greeshma.studymate',
   appName: 'studymaate',
   webDir: 'dist',
   server: {
